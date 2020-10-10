@@ -4,7 +4,7 @@
 
 The following tools are used to help build, test, debug, and document this library:
 
-- USB Test Device A: This is a custom USB device that is used for testing this library.  You must have a device like this plugged in if you want to run the full test suite.  The `test/firmware/wixel` folder contains firmware that can turn a [Pololu Wixel](https://www.pololu.com/product/1337) into a USB Test Device A, and it should be possible to implement it on other USB-capable boards as well.
+- USB Test Device A: This is a custom USB device that is used for testing this library. You must have a device like this plugged in if you want to run the full test suite.  The `test/firmware/wixel` folder contains firmware that can turn a [Pololu Wixel](https://www.pololu.com/product/1337) into a USB Test Device A, and it should be possible to implement it on other USB-capable boards as well.
 - [cmake](http://www.cmake.org)
 - [catch](https://github.com/philsquared/Catch)
 - [Doxygen](http://www.stack.nl/~dimitri/doxygen/)
