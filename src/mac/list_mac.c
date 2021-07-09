@@ -37,13 +37,10 @@ libusbp_error * libusbp_list_connected_devices(
     // Create a dictionary that says "IOProviderClass" => "IOUSBDevice"
     // This dictionary is CFReleased by IOServiceGetMatchingServices.
     CFMutableDictionaryRef dict = NULL;
-    if (error == NULL)
+    dict = IOServiceMatching("IOUSBHostDevice");
+    if (dict == NULL)
     {
-        dict = IOServiceMatching("IOUSBHostDevice");
-        if (dict == NULL)
-        {
-            error = error_create("IOServiceMatching returned null.");
-        }
+        error = error_create("IOServiceMatching returned null.");
     }
 
     // Create an iterator for all the connected USB devices.

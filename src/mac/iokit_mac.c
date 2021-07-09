@@ -42,14 +42,12 @@ libusbp_error * service_get_usb_interface(io_service_t service,
     libusbp_error * error = NULL;
 
     io_iterator_t iterator = MACH_PORT_NULL;
-    if (error == NULL)
+    kern_return_t result = IORegistryEntryGetChildIterator(
+        service, kIOServicePlane, &iterator);
+
+    if (result != KERN_SUCCESS)
     {
-        kern_return_t result = IORegistryEntryGetChildIterator(
-            service, kIOServicePlane, &iterator);
-        if (result != KERN_SUCCESS)
-        {
-            error = error_create_mach(result, "Failed to get child iterator.");
-        }
+        error = error_create_mach(result, "Failed to get child iterator.");
     }
 
     // Loop through the devices to find the right one.
@@ -59,7 +57,7 @@ libusbp_error * service_get_usb_interface(io_service_t service,
         if (candidate == MACH_PORT_NULL) { break; }
 
         // Filter out candidates that are not of class IOUSBInterface.
-        bool conforms = IOObjectConformsTo(candidate, kIOUSBInterfaceClassName);
+        bool conforms = (bool) IOObjectConformsTo(candidate, kIOUSBInterfaceClassName);
         if (!conforms)
         {
             IOObjectRelease(candidate);
@@ -101,14 +99,12 @@ libusbp_error * service_get_child_by_class(io_service_t service,
     libusbp_error * error = NULL;
 
     io_iterator_t iterator = MACH_PORT_NULL;
-    if (error == NULL)
+    kern_return_t result = IORegistryEntryCreateIterator(
+        service, kIOServicePlane, kIORegistryIterateRecursively, &iterator);
+
+    if (result != KERN_SUCCESS)
     {
-        kern_return_t result = IORegistryEntryCreateIterator(
-            service, kIOServicePlane, kIORegistryIterateRecursively, &iterator);
-        if (result != KERN_SUCCESS)
-        {
-            error = error_create_mach(result, "Failed to get recursive iterator.");
-        }
+        error = error_create_mach(result, "Failed to get recursive iterator.");
     }
 
     // Loop through the devices to find the right one.
@@ -118,7 +114,7 @@ libusbp_error * service_get_child_by_class(io_service_t service,
         if (candidate == MACH_PORT_NULL) { break; }
 
         // Filter out candidates that are not the right class.
-        bool conforms = IOObjectConformsTo(candidate, class_name);
+        bool conforms = (bool) IOObjectConformsTo(candidate, class_name);
         if (!conforms)
         {
             IOObjectRelease(candidate);
@@ -158,15 +154,13 @@ libusbp_error * service_to_interface(
 
     // Create the plug-in interface.
     IOCFPlugInInterface ** new_plug_in = NULL;
-    if (error == NULL)
+    kern_return_t kr = IOCreatePlugInInterfaceForService(service,
+        pluginType, kIOCFPlugInInterfaceID,
+        &new_plug_in, &score);
+
+    if (kr != KERN_SUCCESS)
     {
-        kern_return_t kr = IOCreatePlugInInterfaceForService(service,
-            pluginType, kIOCFPlugInInterfaceID,
-            &new_plug_in, &score);
-        if (kr != KERN_SUCCESS)
-        {
-            error = error_create_mach(kr, "Failed to create plug-in interface.");
-        }
+        error = error_create_mach(kr, "Failed to create plug-in interface.");
     }
 
     // Create the device interface and pass it to the caller.
@@ -229,7 +223,7 @@ libusbp_error * get_string(io_registry_entry_t entry, CFStringRef name, char ** 
 
     libusbp_error * error = NULL;
 
-    if (error == NULL && CFGetTypeID(cf_value) != CFStringGetTypeID())
+    if (CFGetTypeID(cf_value) != CFStringGetTypeID())
     {
         error = error_create("Property is not a string.");
     }
@@ -250,7 +244,7 @@ libusbp_error * get_string(io_registry_entry_t entry, CFStringRef name, char ** 
         error = string_copy(buffer, value);
     }
 
-    if (cf_value != NULL) { CFRelease(cf_value); }
+    CFRelease(cf_value);
     return error;
 }
 
@@ -264,14 +258,11 @@ libusbp_error * get_int32(io_registry_entry_t entry, CFStringRef name, int32_t *
 
     libusbp_error * error = NULL;
 
-    CFTypeRef cf_value = NULL;
-    if (error == NULL)
+    CFTypeRef cf_value = IORegistryEntryCreateCFProperty(entry, name, kCFAllocatorDefault, 0);
+
+    if (cf_value == NULL)
     {
-        cf_value = IORegistryEntryCreateCFProperty(entry, name, kCFAllocatorDefault, 0);
-        if (cf_value == NULL)
-        {
-            error = error_create("Failed to get int32 property from IORegistryEntry.");
-        }
+        error = error_create("Failed to get int32 property from IORegistryEntry.");
     }
 
     if (error == NULL && CFGetTypeID(cf_value) != CFNumberGetTypeID())
@@ -301,16 +292,13 @@ libusbp_error * get_uint16(io_registry_entry_t entry, CFStringRef name, uint16_t
     libusbp_error * error = NULL;
 
     int32_t tmp;
-    if (error == NULL)
-    {
-        error = get_int32(entry, name, &tmp);
-    }
+    error = get_int32(entry, name, &tmp);
 
     if (error == NULL)
     {
-        // There is an implicit conversion of an int32_t to a uint16_t here but
+        // There is an unchecked conversion of an int32_t to a uint16_t here but
         // we don't expect any data to be lost.
-        *value = tmp;
+        *value = (uint16_t) tmp;
     }
 
     return error;

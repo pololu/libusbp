@@ -41,14 +41,11 @@ libusbp_error * libusbp_serial_port_create(
 
     libusbp_error * error = NULL;
 
-    libusbp_serial_port * new_port = NULL;
-    if (error == NULL)
+    libusbp_serial_port * new_port = calloc(1, sizeof(libusbp_serial_port));
+
+    if (new_port == NULL)
     {
-        new_port = calloc(1, sizeof(libusbp_serial_port));
-        if (new_port == NULL)
-        {
-            error = &error_no_memory;
-        }
+        error = &error_no_memory;
     }
 
     // Get the ID for the physical device.
@@ -128,14 +125,11 @@ libusbp_error * libusbp_serial_port_copy(const libusbp_serial_port * source,
     libusbp_error * error = NULL;
 
     // Allocate memory for the new object.
-    libusbp_serial_port * new_port = NULL;
-    if (error == NULL)
+    libusbp_serial_port * new_port = calloc(1, sizeof(libusbp_serial_port));
+
+    if (new_port == NULL)
     {
-        new_port = calloc(1, sizeof(libusbp_serial_port));
-        if (new_port == NULL)
-        {
-            error = &error_no_memory;
-        }
+        error = &error_no_memory;
     }
 
     // Copy the port name.

@@ -82,10 +82,7 @@ libusbp_error * libusbp_generic_interface_create(
     {
         // Get an io_service_t for the physical device.
         io_service_t device_service = MACH_PORT_NULL;
-        if (error == NULL)
-        {
-            error = service_get_from_id(new_gi->device_id, &device_service);
-        }
+        error = service_get_from_id(new_gi->device_id, &device_service);
 
         // Get the io_service_t for the interface.
         io_service_t interface_service = MACH_PORT_NULL;
@@ -149,10 +146,7 @@ libusbp_error * libusbp_generic_interface_copy(
 
     // Allocate the generic interface.
     libusbp_generic_interface * new_gi = NULL;
-    if (error == NULL)
-    {
-        error = generic_interface_allocate(&new_gi);
-    }
+    error = generic_interface_allocate(&new_gi);
 
     // Copy the simple fields.
     if (error == NULL)
