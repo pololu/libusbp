@@ -13,5 +13,6 @@ int main()
   while (1)
   {
     tud_task();
+    board_led_write(1);
   }
 }
