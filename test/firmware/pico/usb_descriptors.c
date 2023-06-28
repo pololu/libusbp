@@ -63,7 +63,7 @@ const uint8_t * tud_descriptor_device_cb(void)
 static const uint8_t desc_fs_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, 4, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, 2, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
 
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
   TUD_CDC_DESCRIPTOR(0, 4, EPNUM_CDC_0_NOTIF, 8, EPNUM_CDC_0_OUT, EPNUM_CDC_0_IN, 64),
@@ -114,7 +114,7 @@ const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t langid)
     return NULL;
   }
 
-  string_desc[0] = (uint16_t) (TUSB_DESC_STRING << 8 | (2 * char_count + 2));
+  string_desc[0] = (uint16_t)(TUSB_DESC_STRING << 8 | (2 * char_count + 2));
 
   return string_desc;
 }
