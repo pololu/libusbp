@@ -25,8 +25,9 @@
 
 #include "tusb.h"
 
-#define USB_VID 0xCAFE
-#define USB_PID 0
+#define EP_ADDR_CDC_NOTIF   0x81
+#define EP_ADDR_CDC_OUT     0x02
+#define EP_ADDR_CDC_IN      0x82
 
 static const tusb_desc_device_t desc_device =
 {
@@ -41,7 +42,7 @@ static const tusb_desc_device_t desc_device =
 
   // TODO: after we get the descriptors right, use a real VID/PID here
   .idVendor = 0xCAFE,
-  .idProduct = 0x0002,
+  .idProduct = 0x0004,
   .bcdDevice = 0x0100,
   .iManufacturer = 1,
   .iProduct = 2,
@@ -49,24 +50,25 @@ static const tusb_desc_device_t desc_device =
   .bNumConfigurations = 1
 };
 
-const uint8_t * tud_descriptor_device_cb(void)
+const uint8_t * tud_descriptor_device_cb()
 {
   return (uint8_t const *)&desc_device;
 }
 
-#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
-
-#define EPNUM_CDC_0_NOTIF   0x81
-#define EPNUM_CDC_0_OUT     0x02
-#define EPNUM_CDC_0_IN      0x82
+#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + 9 + TUD_CDC_DESC_LEN)
 
 static const uint8_t desc_fs_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, 2, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, 3, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+
+  // Interface 0: native interface
+  9, TUSB_DESC_INTERFACE, 0, 0, 0/*TODO: 3 eps*/, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
+  // TODO:   7, TUSB_DESC_ENDPOINT, _epout, TUSB_XFER_BULK, U16_TO_U8S_LE(_epsize), 0,
 
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
-  TUD_CDC_DESCRIPTOR(0, 4, EPNUM_CDC_0_NOTIF, 8, EPNUM_CDC_0_OUT, EPNUM_CDC_0_IN, 64),
+  // TODO: change notification size from 8 to 10 below
+  TUD_CDC_DESCRIPTOR(1, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
 };
 
 const uint8_t * tud_descriptor_configuration_cb(uint8_t index)
@@ -77,11 +79,13 @@ const uint8_t * tud_descriptor_configuration_cb(uint8_t index)
 
 static const char * string_desc_arr[] =
 {
-  (const char[]) { 0x09, 0x04 }, // 0: Language is English (0x0409)
-  "TinyUSB",                     // 1: Manufacturer
-  "TinyUSB Device",              // 2: Product
-  "123456",                      // 3: Serial number (TODO: use unique ID)
-  "TinyUSB CDC",                 // 4
+  (const char[]) { 0x09, 0x04 },     // 0: Language is English (0x0409)
+  "Pololu Corporation",              // 1: Manufacturer
+  "USB Test Device A",               // 2: Product
+  "123456",                          // 3: Serial number (TODO: use unique ID)
+  "USB Test Device A Interface 0",   // 4
+  "USB Test Device A Interface 1",   // 5
+  "USB Test Device A Port",          // 6
 };
 
 static uint16_t string_desc[80];
