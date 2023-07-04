@@ -42,7 +42,7 @@ static const tusb_desc_device_t desc_device =
 
   // TODO: after we get the descriptors right, use a real VID/PID here
   .idVendor = 0xCAFE,
-  .idProduct = 0x0004,
+  .idProduct = 0x0006,
   .bcdDevice = 0x0100,
   .iManufacturer = 1,
   .iProduct = 2,
@@ -55,20 +55,20 @@ const uint8_t * tud_descriptor_device_cb()
   return (uint8_t const *)&desc_device;
 }
 
-#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + 9 + TUD_CDC_DESC_LEN)
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN /*+ 9*/ + TUD_CDC_DESC_LEN)
 
 static const uint8_t desc_fs_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, 3, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, /*3*/ 2, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
 
   // Interface 0: native interface
-  9, TUSB_DESC_INTERFACE, 0, 0, 0/*TODO: 3 eps*/, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
+  //TPDP" 9, TUSB_DESC_INTERFACE, 0, 0, 0/*TODO: 3 eps*/, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
   // TODO:   7, TUSB_DESC_ENDPOINT, _epout, TUSB_XFER_BULK, U16_TO_U8S_LE(_epsize), 0,
 
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
   // TODO: change notification size from 8 to 10 below
-  TUD_CDC_DESCRIPTOR(1, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
+  TUD_CDC_DESCRIPTOR(/*1*/ 0, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
 };
 
 const uint8_t * tud_descriptor_configuration_cb(uint8_t index)
@@ -90,9 +90,8 @@ static const char * string_desc_arr[] =
 
 static uint16_t string_desc[80];
 
-// TODO: just store the USB string descriptors in flash instead of dynamically
-// generating them and doing character conversions at runtime and imposing
-// arbitrary size limits
+// TODO: just store the USB string descriptors in flash instead of doing
+// character conversions at runtime and imposing arbitrary size limits
 const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 {
   (void)langid;

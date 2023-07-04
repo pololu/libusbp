@@ -40,10 +40,22 @@ bool __no_inline_not_in_flash_func(bootsel_button_pressed)()
 
 int main()
 {
+  stdio_uart_init(); // GP0 = TX, 115200 baud
+  // TODO: stdio_uart_buf_init(uart0, 115200, 0, -1);
+  // TODO: stdio_uart_buf_set_tx_nonblocking(true);
   tud_init(0);
   while (1)
   {
     tud_task();
+
+    static uint32_t last_report_time = 0;
+    if ((uint32_t)(time_us_32() - last_report_time) > 500000)
+    {
+      led(1);
+      printf("hi\r\n");
+      led(0);
+      last_report_time = time_us_32();
+    }
 
     // For ease of trying new firmware, if the BOOTSEL button is pressed,
     // launch the USB bootloader.
