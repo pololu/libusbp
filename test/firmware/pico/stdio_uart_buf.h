@@ -15,3 +15,6 @@ extern stdio_driver_t stdio_uart_buf;
 void stdio_uart_buf_init(struct uart_inst * uart, uint baud_rate,
   int tx_pin, int rx_pin);
 
+size_t stdio_uart_buf_tx_available();
+
+size_t stdio_uart_buf_tx_write(const void * buf, size_t count);

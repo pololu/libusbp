@@ -10,6 +10,8 @@
 
 #include <tusb.h>
 
+#include "stdio_uart_buf.h"
+
 void led(bool b)  // TODO: use this to indicate USB activity
 {
   gpio_init(25);
