@@ -40,8 +40,8 @@ bool __no_inline_not_in_flash_func(bootsel_button_pressed)()
 
 int main()
 {
-  stdio_uart_init(); // GP0 = TX, 115200 baud
-  // TODO: stdio_uart_buf_init(uart0, 115200, 0, -1);
+  //stdio_uart_init(); // GP0 = TX, 115200 baud
+  stdio_uart_buf_init(uart0, 115200, 0, -1);
   // TODO: stdio_uart_buf_set_tx_nonblocking(true);
   tud_init(0);
   while (1)
