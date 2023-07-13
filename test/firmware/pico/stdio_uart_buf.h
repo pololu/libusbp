@@ -8,7 +8,9 @@
 
 #pragma once
 
-#include "hardware/uart.h"
+#include <hardware/uart.h>
+
+#include <pico/stdio/driver.h>
 
 extern stdio_driver_t stdio_uart_buf;
 
@@ -19,8 +21,14 @@ void stdio_uart_buf_init(struct uart_inst * uart, uint baud_rate,
 // Can be called in an interrupt.
 size_t stdio_uart_buf_tx_available(void);
 
+// Total number of bytes sent.  // TODO: just allow access to the variable?
+size_t stdio_uart_buf_tx_send_count(void);
+
 // Can be called in an interrupt.
 size_t stdio_uart_buf_tx_write(const void * buf, size_t count);
+
+// Can be called in an interrupt.
+size_t stdio_uart_buf_tx_write_atom(const void * buf, size_t count);
 
 // Should only be called in the main loop, not in an interrupt.
 void stdio_uart_buf_task(void);

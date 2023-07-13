@@ -10,6 +10,8 @@ pico_sdk_init()
 
 add_executable(usb_test_device_a main.c usb_descriptors.c stdio_uart_buf)
 
+target_compile_definitions(usb_test_device_a PRIVATE STDIO_UART_BUF_SIZE_TX=65536)
+
 # Make sure TinyUSB can find tusb_config.h
 target_include_directories(usb_test_device_a PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 

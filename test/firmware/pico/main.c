@@ -55,7 +55,7 @@ int main()
     if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
     {
       led(1);
-      printf("hi\r\n");
+      printf("%u\r\n", stdio_uart_buf_tx_send_count());
       led(0);
       last_report_time = time_us_32();
     }
