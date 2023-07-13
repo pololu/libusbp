@@ -49,9 +49,10 @@ int main()
   while (1)
   {
     tud_task();
+    stdio_uart_buf_task();
 
     static uint32_t last_report_time = 0;
-    if ((uint32_t)(time_us_32() - last_report_time) > 500000)
+    if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
     {
       led(1);
       printf("hi\r\n");

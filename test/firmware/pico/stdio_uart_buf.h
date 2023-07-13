@@ -12,9 +12,15 @@
 
 extern stdio_driver_t stdio_uart_buf;
 
+// Should only be called in the main loop, not in an interrupt.
 void stdio_uart_buf_init(struct uart_inst * uart, uint baud_rate,
   int tx_pin, int rx_pin);
 
-size_t stdio_uart_buf_tx_available();
+// Can be called in an interrupt.
+size_t stdio_uart_buf_tx_available(void);
 
+// Can be called in an interrupt.
 size_t stdio_uart_buf_tx_write(const void * buf, size_t count);
+
+// Should only be called in the main loop, not in an interrupt.
+void stdio_uart_buf_task(void);
