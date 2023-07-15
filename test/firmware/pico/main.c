@@ -42,9 +42,8 @@ bool __no_inline_not_in_flash_func(bootsel_button_pressed)()
 
 int main()
 {
-  //stdio_uart_init(); // GP0 = TX, 115200 baud
-  stdio_uart_buf_init(uart0, 115200, 0, -1);
-  // TODO: stdio_uart_buf_set_tx_nonblocking(true);
+  // GP0 = TX, 3 Mbps (max speed of the CP2102N)
+  stdio_uart_buf_init(uart0, 3000000, 0, -1);
   tud_init(0);
   while (1)
   {
@@ -55,7 +54,7 @@ int main()
     if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
     {
       led(1);
-      printf("%u\r\n", stdio_uart_buf_tx_send_count());
+      printf("%u\n", stdio_uart_buf_tx_send_count());
       led(0);
       last_report_time = time_us_32();
     }
