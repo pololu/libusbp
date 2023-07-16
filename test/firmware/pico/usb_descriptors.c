@@ -23,7 +23,8 @@
  *
  */
 
-#include "tusb.h"
+#include <tusb.h>
+#include <device/usbd_pvt.h>
 
 #define EP_ADDR_CDC_NOTIF   0x81
 #define EP_ADDR_CDC_OUT     0x02
@@ -55,20 +56,20 @@ const uint8_t * tud_descriptor_device_cb()
   return (uint8_t const *)&desc_device;
 }
 
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN /*+ 9*/ + TUD_CDC_DESC_LEN)
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + 9 + TUD_CDC_DESC_LEN)
 
 static const uint8_t desc_fs_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, /*3*/ 2, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, 3, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
 
   // Interface 0: native interface
-  //TPDP" 9, TUSB_DESC_INTERFACE, 0, 0, 0/*TODO: 3 eps*/, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
+  9, TUSB_DESC_INTERFACE, 0, 0, 0/*TODO: 3 eps*/, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
   // TODO:   7, TUSB_DESC_ENDPOINT, _epout, TUSB_XFER_BULK, U16_TO_U8S_LE(_epsize), 0,
 
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
   // TODO: change notification size from 8 to 10 below
-  TUD_CDC_DESCRIPTOR(/*1*/ 0, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
+  TUD_CDC_DESCRIPTOR(1, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
 };
 
 const uint8_t * tud_descriptor_configuration_cb(uint8_t index)
@@ -92,9 +93,8 @@ static uint16_t string_desc[80];
 
 // TODO: just store the USB string descriptors in flash instead of doing
 // character conversions at runtime and imposing arbitrary size limits
-const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t langid)
+const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langid)
 {
-  (void)langid;
 
   size_t char_count;
 
@@ -120,4 +120,50 @@ const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t langid)
   string_desc[0] = (uint16_t)(TUSB_DESC_STRING << 8 | (2 * char_count + 2));
 
   return string_desc;
+}
+
+//// vendor3: Driver for our vendor-defined interface //////////////////////////
+// This driver only supports being attached to interface 0.
+
+static void vendor3_init() {
+}
+
+static void vendor3_reset(uint8_t __unused rhport) {
+}
+
+static uint16_t vendor3_open(uint8_t __unused rhport,
+  const tusb_desc_interface_t * itf_desc, uint16_t __unused max_len)
+{
+  TU_VERIFY(itf_desc->bInterfaceClass == TUSB_CLASS_VENDOR_SPECIFIC, 0);
+  TU_VERIFY(itf_desc->bInterfaceNumber == 0, 0);
+  // TODO: TU_VERIFY(itf_desc->bNumEdnpoints == 3, 0);
+
+  return sizeof(tusb_desc_interface_t);
+}
+
+static bool vendor3_control_xfer_cb(uint8_t __unused rhport, uint8_t __unused stage,
+  const tusb_control_request_t __unused * request)
+{
+  return false;
+}
+
+static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t __unused ep_addr,
+  xfer_result_t __unused result, uint32_t __unused xferred_bytes) {
+  return true;
+}
+
+static const usbd_class_driver_t vendor3_driver =
+{
+  .name             = "Vendor3",
+  .init             = vendor3_init,
+  .reset            = vendor3_reset,
+  .open             = vendor3_open,
+  .control_xfer_cb  = vendor3_control_xfer_cb,
+  .xfer_cb          = vendor3_xfer_cb,
+};
+
+const usbd_class_driver_t * usbd_app_driver_get_cb(uint8_t * driver_count)
+{
+  *driver_count = 1;
+  return &vendor3_driver;
 }
