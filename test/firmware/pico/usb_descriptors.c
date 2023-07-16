@@ -1,28 +1,3 @@
-/*
- * The MIT License (MIT)
- *
- * Copyright (c) 2019 Ha Thach (tinyusb.org)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
-
 #include <tusb.h>
 #include <device/usbd_pvt.h>
 
@@ -49,7 +24,7 @@ static const tusb_desc_device_t desc_device =
 
   // TODO: after we get the descriptors right, use a real VID/PID here
   .idVendor = 0xCAFE,
-  .idProduct = 0x0006,
+  .idProduct = 0x0007,
   .bcdDevice = 0x0100,
   .iManufacturer = 1,
   .iProduct = 2,
@@ -59,7 +34,7 @@ static const tusb_desc_device_t desc_device =
 
 const uint8_t * tud_descriptor_device_cb()
 {
-  return (uint8_t const *)&desc_device;
+  return (const uint8_t *)&desc_device;
 }
 
 #define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + 9 + 3 * 7 + TUD_CDC_DESC_LEN)
@@ -75,6 +50,8 @@ static const uint8_t desc_configuration[] =
   7, TUSB_DESC_ENDPOINT, EP_ADDR_CMD_OUT, TUSB_XFER_BULK, U16_TO_U8S_LE(CMD_PACKET_SIZE), 1,
   7, TUSB_DESC_ENDPOINT, EP_ADDR_CMD_IN, TUSB_XFER_BULK, U16_TO_U8S_LE(CMD_PACKET_SIZE), 1,
 
+  // TODO: // Interface 1: native interface
+
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
   // TODO: change notification size from 8 to 10 below
   TUD_CDC_DESCRIPTOR(1, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
@@ -82,54 +59,35 @@ static const uint8_t desc_configuration[] =
 
 static_assert(CONFIG_TOTAL_LEN == sizeof(desc_configuration));
 
-const uint8_t * tud_descriptor_configuration_cb(uint8_t index)
+const uint8_t * tud_descriptor_configuration_cb(uint8_t __unused index)
 {
-  (void)index;
   return desc_configuration;
 }
 
-static const char * string_desc_arr[] =
+typedef struct usb_desc_string_t
 {
-  (const char[]) { 0x09, 0x04 },     // 0: Language is English (0x0409)
-  "Pololu Corporation",              // 1: Manufacturer
-  "USB Test Device A",               // 2: Product
-  "123456",                          // 3: Serial number (TODO: use unique ID)
-  "USB Test Device A Interface 0",   // 4
-  "USB Test Device A Interface 1",   // 5
-  "USB Test Device A Port",          // 6
-};
+  uint8_t length;
+  uint8_t type;
+  uint16_t data[];
+} usb_desc_string_t;
+#define DESC_STRING(str) { sizeof(u##str), TUSB_DESC_STRING, u##str }
 
-static uint16_t string_desc[80];
+// TODO: static
+const usb_desc_string_t
+  language = { 4, TUSB_DESC_STRING, { 0x0409 } },
+  manufacturer = DESC_STRING("Pololu Corporation"),
+  product = DESC_STRING("USB Test Device A"),
+  serial = DESC_STRING("123456"), // TODO: use unique ID
+  interface0 = DESC_STRING("USB Test Device A Interface 0"),
+  interface1 = DESC_STRING("USB Test Device A Interface 1"),
+  port = DESC_STRING("USB Test Device A Port"),
+  * const strings[] = { &language, [1] = &manufacturer, [2] = &product, [3] = &serial,
+    [4] = &interface0, [5] = &interface1, [6] = &port };
 
-// TODO: just store the USB string descriptors in flash instead of doing
-// character conversions at runtime and imposing arbitrary size limits
 const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langid)
 {
-
-  size_t char_count;
-
-  if (index == 0)
-  {
-    memcpy(&string_desc[1], string_desc_arr[0], 2);
-    char_count = 1;
-  }
-  else if (index < sizeof(string_desc_arr) / sizeof(string_desc_arr[0]))
-  {
-    const char * str = string_desc_arr[index];
-
-    char_count = strlen(str);
-    if (char_count > 79) { char_count = 79; }
-
-    for (uint8_t i = 0; i < char_count; i++) { string_desc[i + 1] = str[i]; }
-  }
-  else
-  {
-    return NULL;
-  }
-
-  string_desc[0] = (uint16_t)(TUSB_DESC_STRING << 8 | (2 * char_count + 2));
-
-  return string_desc;
+  if (index >= sizeof(strings) / sizeof(strings[0])) { return NULL; }
+  return (const void *)strings[index];
 }
 
 //// vendor3: Driver for our vendor-defined interface //////////////////////////
