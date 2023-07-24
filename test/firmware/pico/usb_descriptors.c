@@ -81,7 +81,8 @@ const usb_desc_string_t
   interface0 = DESC_STRING("USB Test Device A Interface 0"),
   interface1 = DESC_STRING("USB Test Device A Interface 1"),
   port = DESC_STRING("USB Test Device A Port"),
-  * const strings[] = { &language, [1] = &manufacturer, [2] = &product, [3] = &serial,
+  * const strings[] = {
+    &language, [1] = &manufacturer, [2] = &product, [3] = &serial,
     [4] = &interface0, [5] = &interface1, [6] = &port };
 
 const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langid)

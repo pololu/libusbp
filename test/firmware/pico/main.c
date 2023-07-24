@@ -40,6 +40,15 @@ bool __no_inline_not_in_flash_func(bootsel_button_pressed)()
   return r;
 }
 
+void cdc_task()
+{
+  while (tud_cdc_available() && tud_cdc_write_available())
+  {
+    tud_cdc_write_char(tud_cdc_read_char());
+  }
+  tud_cdc_write_flush();
+}
+
 int main()
 {
   // GP0 = TX, 3 Mbps (max speed of the CP2102N)
@@ -49,6 +58,7 @@ int main()
   {
     tud_task();
     stdio_uart_buf_task();
+    cdc_task();
 
     static uint32_t last_report_time = 0;
     if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
