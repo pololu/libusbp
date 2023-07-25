@@ -24,7 +24,7 @@ static const tusb_desc_device_t desc_device =
 
   // TODO: after we get the descriptors right, use a real VID/PID here
   .idVendor = 0xCAFE,
-  .idProduct = 0x0007,
+  .idProduct = 0x0008,
   .bcdDevice = 0x0100,
   .iManufacturer = 1,
   .iProduct = 2,
@@ -37,12 +37,12 @@ const uint8_t * tud_descriptor_device_cb()
   return (const uint8_t *)&desc_device;
 }
 
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + 9 + 3 * 7 + TUD_CDC_DESC_LEN)
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + 9 + 3 * 7 + 9 + TUD_CDC_DESC_LEN)
 
 static const uint8_t desc_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, 3, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, 4, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
 
   // Interface 0: native interface
   9, TUSB_DESC_INTERFACE, 0, 0, 3, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
@@ -50,11 +50,12 @@ static const uint8_t desc_configuration[] =
   7, TUSB_DESC_ENDPOINT, EP_ADDR_CMD_OUT, TUSB_XFER_BULK, U16_TO_U8S_LE(CMD_PACKET_SIZE), 1,
   7, TUSB_DESC_ENDPOINT, EP_ADDR_CMD_IN, TUSB_XFER_BULK, U16_TO_U8S_LE(CMD_PACKET_SIZE), 1,
 
-  // TODO: // Interface 1: native interface
+  // Interface 1: another native interface
+  9, TUSB_DESC_INTERFACE, 1, 0, 0, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 5,
 
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
   // TODO: change notification size from 8 to 10 below
-  TUD_CDC_DESCRIPTOR(1, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
+  TUD_CDC_DESCRIPTOR(2, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
 };
 
 static_assert(CONFIG_TOTAL_LEN == sizeof(desc_configuration));
@@ -91,8 +92,7 @@ const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langi
   return (const void *)strings[index];
 }
 
-//// vendor3: Driver for our vendor-defined interface //////////////////////////
-// This driver only supports being attached to interface 0.
+//// vendor3: Driver for our vendor-defined interfaces /////////////////////////
 
 static void vendor3_init() {
 }
@@ -104,10 +104,10 @@ static uint16_t vendor3_open(uint8_t __unused rhport,
   const tusb_desc_interface_t * itf_desc, uint16_t __unused max_len)
 {
   TU_VERIFY(itf_desc->bInterfaceClass == TUSB_CLASS_VENDOR_SPECIFIC);
-  TU_VERIFY(itf_desc->bInterfaceNumber == 0);
-  TU_VERIFY(itf_desc->bNumEndpoints == 3, 0);
 
-  return sizeof(tusb_desc_interface_t) + 3 * sizeof(tusb_desc_endpoint_t);
+  // Assumption: the only descriptors in this interface are endpoint descriptors
+  return sizeof(tusb_desc_interface_t) +
+    itf_desc->bNumEndpoints * sizeof(tusb_desc_endpoint_t);
 }
 
 static bool vendor3_control_xfer_cb(uint8_t __unused rhport, uint8_t __unused stage,
