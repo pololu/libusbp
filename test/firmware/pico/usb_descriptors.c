@@ -24,7 +24,7 @@ static const tusb_desc_device_t desc_device =
 
   // TODO: after we get the descriptors right, use a real VID/PID here
   .idVendor = 0xCAFE,
-  .idProduct = 0x0009,
+  .idProduct = 0x000B,
   .bcdDevice = 0x0100,
   .iManufacturer = 1,
   .iProduct = 2,
@@ -37,12 +37,12 @@ const uint8_t * tud_descriptor_device_cb()
   return (const uint8_t *)&desc_device;
 }
 
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + 9 + 3 * 7 + 9 + TUD_CDC_DESC_LEN)
+#define CONFIG_LENGTH (TUD_CONFIG_DESC_LEN + 9 + 3 * 7 + 9 + TUD_CDC_DESC_LEN)
 
 static const uint8_t desc_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, 4, 0, CONFIG_TOTAL_LEN, 0xC0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, 4, 0, CONFIG_LENGTH, 0xC0, 100),
 
   // Interface 0: native interface
   9, TUSB_DESC_INTERFACE, 0, 0, 3, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 4,
@@ -58,7 +58,7 @@ static const uint8_t desc_configuration[] =
   TUD_CDC_DESCRIPTOR(2, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
 };
 
-static_assert(CONFIG_TOTAL_LEN == sizeof(desc_configuration));
+static_assert(CONFIG_LENGTH == sizeof(desc_configuration));
 
 const uint8_t * tud_descriptor_configuration_cb(uint8_t __unused index)
 {
@@ -93,6 +93,13 @@ const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langi
 }
 
 //// Microsoft OS 2.0 descriptors and BOS //////////////////////////////////////
+
+// Wireless USB Specification 1.1, Table 7-1
+#define USB_DESCRIPTOR_TYPE_BOS 15
+#define USB_DESCRIPTOR_TYPE_DEVICE_CAPABILITY 16
+
+// Microsoft OS 2.0 Descriptors, Table 1
+#define USB_DEVICE_CAPABILITY_TYPE_PLATFORM 5
 
 // Microsoft OS 2.0 Descriptors, Table 8
 #define MS_OS_20_DESCRIPTOR_INDEX 7
@@ -149,17 +156,31 @@ const uint8_t desc_ms_os_20[] = {
 
 static_assert(MS_OS_20_LENGTH == sizeof(desc_ms_os_20));
 
-#define BOS_TOTAL_LEN (TUD_BOS_DESC_LEN + TUD_BOS_MICROSOFT_OS_DESC_LEN)
+#define BOS_LENGTH 0x21
 
 const uint8_t desc_bos[] =
 {
-  // total length, number of device caps
-  TUD_BOS_DESCRIPTOR(BOS_TOTAL_LEN, 1),
+  0x05,       // bLength of this descriptor
+  USB_DESCRIPTOR_TYPE_BOS,
+  BOS_LENGTH, 0x00, // wLength
+  0x01,       // bNumDeviceCaps
 
-  TUD_BOS_MS_OS_20_DESCRIPTOR(MS_OS_20_LENGTH, REQUEST_GET_MS_DESCRIPTOR)
+  0x1C,       // bLength of this first device capability descriptor
+  USB_DESCRIPTOR_TYPE_DEVICE_CAPABILITY,
+  USB_DEVICE_CAPABILITY_TYPE_PLATFORM,
+  0x00,       // bReserved
+  // Microsoft OS 2.0 descriptor platform capability UUID
+  // from Microsoft OS 2.0 Descriptors,  Table 3.
+  0xDF, 0x60, 0xDD, 0xD8, 0x89, 0x45, 0xC7, 0x4C,
+  0x9C, 0xD2, 0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F,
+
+  0x00, 0x00, 0x03, 0x06,   // dwWindowsVersion: Windows 8.1 (NTDDI_WINBLUE)
+  MS_OS_20_LENGTH, 0x00,    // wMSOSDescriptorSetTotalLength
+  REQUEST_GET_MS_DESCRIPTOR,
+  0,                        // bAltEnumCode
 };
 
-static_assert(BOS_TOTAL_LEN == sizeof(desc_bos));
+static_assert(BOS_LENGTH == sizeof(desc_bos));
 
 const uint8_t * tud_descriptor_bos_cb()
 {
