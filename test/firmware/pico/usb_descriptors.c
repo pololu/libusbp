@@ -22,10 +22,9 @@ static const tusb_desc_device_t desc_device =
   .bDeviceProtocol = MISC_PROTOCOL_IAD,
   .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
 
-  // TODO: after we get the descriptors right, use a real VID/PID here
-  .idVendor = 0xCAFE,
-  .idProduct = 0x000B,
-  .bcdDevice = 0x0100,
+  .idVendor = 0x1FFB,   // Pololu Corporation
+  .idProduct = 0xDA01,  // USB Test Device A
+  .bcdDevice = 0x0007,
   .iManufacturer = 1,
   .iProduct = 2,
   .iSerialNumber = 3,
@@ -54,8 +53,7 @@ static const uint8_t desc_configuration[] =
   9, TUSB_DESC_INTERFACE, 1, 0, 0, TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, 5,
 
   // CDC: first interface number, string index, notification EP & size, data endpoints & size
-  // TODO: change notification size from 8 to 10 below
-  TUD_CDC_DESCRIPTOR(2, 6, EP_ADDR_CDC_NOTIF, 8, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
+  TUD_CDC_DESCRIPTOR(2, 6, EP_ADDR_CDC_NOTIF, 10, EP_ADDR_CDC_OUT, EP_ADDR_CDC_IN, 64),
 };
 
 static_assert(CONFIG_LENGTH == sizeof(desc_configuration));
@@ -147,7 +145,7 @@ const uint8_t desc_ms_os_20[] = {
   'f',0,'a',0,'c',0,'e',0,'G',0,'U',0,'I',0,'D',0,'s',0,0,0,
   0x50, 0x00,   // wPropertyDataLength
   // GUID that represents libusbp test devices (generate your own GUID
-  // if you are copying this example for your own device)
+  // if you are copying this example for another device).
   '{',0,'9',0,'9',0,'c',0,'4',0,'b',0,'b',0,'b',0,'0',0,'-',0,
   'e',0,'9',0,'2',0,'5',0,'-',0,'4',0,'3',0,'9',0,'7',0,'-',0,
   'a',0,'f',0,'e',0,'e',0,'-',0,'9',0,'8',0,'1',0,'c',0,'d',0,
