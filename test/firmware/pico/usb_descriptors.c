@@ -11,6 +11,32 @@
 #define ADC_PACKET_SIZE 5
 #define CMD_PACKET_SIZE 32
 
+typedef struct usb_desc_string_t
+{
+  uint8_t length;
+  uint8_t type;
+  uint16_t data[];
+} usb_desc_string_t;
+#define DESC_STRING(str) { sizeof(u##str), TUSB_DESC_STRING, u##str }
+
+static const usb_desc_string_t
+  language = { 4, TUSB_DESC_STRING, { 0x0409 } },
+  manufacturer = DESC_STRING("Pololu Corporation"),
+  product = DESC_STRING("USB Test Device A"),
+  serial = DESC_STRING("123456"), // TODO: use unique ID
+  interface0 = DESC_STRING("USB Test Device A Interface 0"),
+  interface1 = DESC_STRING("USB Test Device A Interface 1"),
+  port = DESC_STRING("USB Test Device A Port"),
+  * const strings[] = {
+    &language, [1] = &manufacturer, [2] = &product, [3] = &serial,
+    [4] = &interface0, [5] = &interface1, [6] = &port };
+
+const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langid)
+{
+  if (index >= sizeof(strings) / sizeof(strings[0])) { return NULL; }
+  return (const void *)strings[index];
+}
+
 static const tusb_desc_device_t desc_device =
 {
   .bLength = sizeof(tusb_desc_device_t),
@@ -61,33 +87,6 @@ static_assert(CONFIG_LENGTH == sizeof(desc_configuration));
 const uint8_t * tud_descriptor_configuration_cb(uint8_t __unused index)
 {
   return desc_configuration;
-}
-
-typedef struct usb_desc_string_t
-{
-  uint8_t length;
-  uint8_t type;
-  uint16_t data[];
-} usb_desc_string_t;
-#define DESC_STRING(str) { sizeof(u##str), TUSB_DESC_STRING, u##str }
-
-// TODO: static
-const usb_desc_string_t
-  language = { 4, TUSB_DESC_STRING, { 0x0409 } },
-  manufacturer = DESC_STRING("Pololu Corporation"),
-  product = DESC_STRING("USB Test Device A"),
-  serial = DESC_STRING("123456"), // TODO: use unique ID
-  interface0 = DESC_STRING("USB Test Device A Interface 0"),
-  interface1 = DESC_STRING("USB Test Device A Interface 1"),
-  port = DESC_STRING("USB Test Device A Port"),
-  * const strings[] = {
-    &language, [1] = &manufacturer, [2] = &product, [3] = &serial,
-    [4] = &interface0, [5] = &interface1, [6] = &port };
-
-const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langid)
-{
-  if (index >= sizeof(strings) / sizeof(strings[0])) { return NULL; }
-  return (const void *)strings[index];
 }
 
 //// Microsoft OS 2.0 descriptors and BOS //////////////////////////////////////
