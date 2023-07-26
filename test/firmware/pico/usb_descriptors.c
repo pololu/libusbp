@@ -1,5 +1,6 @@
 #include <tusb.h>
 #include <device/usbd_pvt.h>
+#include <pico/unique_id.h>
 
 #define EP_ADDR_CDC_NOTIF   0x81
 #define EP_ADDR_CDC_OUT     0x02
@@ -19,21 +20,42 @@ typedef struct usb_desc_string_t
 } usb_desc_string_t;
 #define DESC_STRING(str) { sizeof(u##str), TUSB_DESC_STRING, u##str }
 
+static_assert(PICO_UNIQUE_BOARD_ID_SIZE_BYTES == 8);
+static usb_desc_string_t usb_string_serial = {0, 0, u"1122334455667788"};
+
+static char nibble_to_hex(uint8_t n)
+{
+  return n < 10 ? '0' + n : ('A' - 10) + n;
+}
+
+static void usb_string_serial_init()
+{
+  pico_unique_board_id_t uid;
+  pico_get_unique_board_id(&uid);
+  usb_string_serial.length = 2 + 4 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES;
+  usb_string_serial.type = TUSB_DESC_STRING;
+  for (size_t i = 0; i < PICO_UNIQUE_BOARD_ID_SIZE_BYTES; i++)
+  {
+    usb_string_serial.data[2 * i + 0] = nibble_to_hex(uid.id[i] >> 4);
+    usb_string_serial.data[2 * i + 1] = nibble_to_hex(uid.id[i] & 0xF);
+  }
+}
+
 static const usb_desc_string_t
   language = { 4, TUSB_DESC_STRING, { 0x0409 } },
   manufacturer = DESC_STRING("Pololu Corporation"),
   product = DESC_STRING("USB Test Device A"),
-  serial = DESC_STRING("123456"), // TODO: use unique ID
   interface0 = DESC_STRING("USB Test Device A Interface 0"),
   interface1 = DESC_STRING("USB Test Device A Interface 1"),
   port = DESC_STRING("USB Test Device A Port"),
   * const strings[] = {
-    &language, [1] = &manufacturer, [2] = &product, [3] = &serial,
+    &language, [1] = &manufacturer, [2] = &product, [3] = &usb_string_serial,
     [4] = &interface0, [5] = &interface1, [6] = &port };
 
 const uint16_t * tud_descriptor_string_cb(uint8_t index, uint16_t __unused langid)
 {
   if (index >= sizeof(strings) / sizeof(strings[0])) { return NULL; }
+  if (usb_string_serial.length == 0) { usb_string_serial_init(); }
   return (const void *)strings[index];
 }
 
