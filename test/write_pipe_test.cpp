@@ -6,7 +6,7 @@ TEST_CASE("write_pipe parameter checking")
     libusbp::device device = find_test_device_a();
     libusbp::generic_interface gi(device, 0, true);
     libusbp::generic_handle handle(gi);
-    const uint8_t pipe = 0x03;
+    const uint8_t pipe = 0x04;
     size_t transferred = 0xFFFF;
 
     SECTION("sets transferred to zero if possible")
@@ -38,14 +38,14 @@ TEST_CASE("write_pipe parameter checking")
         try
         {
             uint8_t buffer[5];
-            handle.write_pipe(0x83, buffer, sizeof(buffer), &transferred);
+            handle.write_pipe(0x84, buffer, sizeof(buffer), &transferred);
             REQUIRE(0);
         }
         catch (const libusbp::error & error)
         {
             REQUIRE(std::string(error.what()) ==
                 "Failed to write to pipe.  "
-                "Invalid pipe ID 0x83.");
+                "Invalid pipe ID 0x84.");
             REQUIRE(transferred == 0);
         }
     }
@@ -88,13 +88,13 @@ TEST_CASE("write_pipe (synchronous) on a bulk endpoint ", "[wpi]")
     libusbp::device device = find_test_device_a();
     libusbp::generic_interface gi(device, 0, true);
     libusbp::generic_handle handle(gi);
-    const uint8_t pipe = 0x03;
+    const uint8_t pipe = 0x04;
     handle.set_timeout(pipe, 100);
     size_t transferred = 0xFFFF;
 
     SECTION("can write one small packet")
     {
-        uint8_t buffer[32] = { 0x92, 0x44 };
+        uint8_t buffer[2] = { 0x92, 0x44 };
         handle.write_pipe(pipe, buffer, sizeof(buffer), &transferred);
         REQUIRE(transferred == sizeof(buffer));
 
@@ -105,9 +105,9 @@ TEST_CASE("write_pipe (synchronous) on a bulk endpoint ", "[wpi]")
         REQUIRE(buffer2[0] == 0x44);
     }
 
-    SECTION("can write one packet with null transferred pointer")
+    SECTION("can write one full packet with null transferred pointer")
     {
-        uint8_t buffer[32] = { 0x92, 0x55 };
+        uint8_t buffer[64] = { 0x92, 0x55 };
         handle.write_pipe(pipe, buffer, sizeof(buffer), NULL);
 
         // Read the data back.
@@ -133,10 +133,9 @@ TEST_CASE("write_pipe (synchronous) on a bulk endpoint ", "[wpi]")
 
     SECTION("can time out")
     {
-      // First packet causes a long delay, so this transfer will timeout after
-      // a partial data transfer.  Need three packets because of double
-      // buffering on the device.
-      uint8_t buffer[32 * 3] = { 0xDE, 150, 0 };
+      // First packet causes a long delay, so this transfer will time out after
+      // a partial data transfer.
+      uint8_t buffer[64 * 3] = { 0xDE, 150, 0 };
       try
       {
         handle.write_pipe(pipe, buffer, sizeof(buffer), &transferred);
