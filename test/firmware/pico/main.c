@@ -69,8 +69,8 @@ int main()
       last_report_time = time_us_32();
     }
 
-    // For ease of trying new firmware, if the BOOTSEL button is pressed,
-    // launch the USB bootloader.
+    // If the BOOTSEL button is pressed, launch the USB bootloader.
+    // This makes it easier to reprogram the board.
     if (bootsel_button_pressed())
     {
       reset_usb_boot(0, 0);

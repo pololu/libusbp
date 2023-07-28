@@ -3,10 +3,10 @@
 #include <pico/unique_id.h>
 
 #define EP_ADDR_CDC_NOTIF   0x81
-#define EP_ADDR_CDC_OUT     0x02
+#define EP_ADDR_CDC_OUT     0x02  // was 4
 #define EP_ADDR_CDC_IN      0x82
-#define EP_ADDR_ADC         0x83
-#define EP_ADDR_CMD_OUT     0x04
+#define EP_ADDR_ADC         0x83  // was 2
+#define EP_ADDR_CMD_OUT     0x04  // was 3
 #define EP_ADDR_CMD_IN      0x84
 
 #define ADC_PACKET_SIZE 5
@@ -72,7 +72,7 @@ static const tusb_desc_device_t desc_device =
 
   .idVendor = 0x1FFB,   // Pololu Corporation
   .idProduct = 0xDA01,  // USB Test Device A
-  .bcdDevice = 0x0007,
+  .bcdDevice = 0x0008,
   .iManufacturer = 1,
   .iProduct = 2,
   .iSerialNumber = 3,
@@ -231,13 +231,22 @@ static void vendor3_reset(uint8_t __unused rhport) {
 }
 
 static uint16_t vendor3_open(uint8_t __unused rhport,
-  const tusb_desc_interface_t * itf_desc, uint16_t __unused max_len)
+  const tusb_desc_interface_t * interface_descriptor, uint16_t __unused max_len)
 {
-  TU_VERIFY(itf_desc->bInterfaceClass == TUSB_CLASS_VENDOR_SPECIFIC);
+  TU_VERIFY(interface_descriptor->bInterfaceClass == TUSB_CLASS_VENDOR_SPECIFIC);
 
-  // Assumption: the only descriptors in this interface are endpoint descriptors
-  return sizeof(tusb_desc_interface_t) +
-    itf_desc->bNumEndpoints * sizeof(tusb_desc_endpoint_t);
+  const void * descriptor = interface_descriptor;
+  while (1)
+  {
+    descriptor = tu_desc_next(descriptor);
+    if (tu_desc_type(descriptor) == TUSB_DESC_INTERFACE) { break; }
+    if (tu_desc_type(descriptor) == TUSB_DESC_ENDPOINT)
+    {
+      TU_VERIFY(usbd_edpt_open(rhport, descriptor));
+    }
+  }
+
+  return descriptor - (const void *)interface_descriptor;
 }
 
 static bool vendor3_control_xfer_cb(uint8_t __unused rhport, uint8_t __unused stage,

@@ -1,8 +1,5 @@
 INCLUDE (CheckIncludeFileCXX)
 
-# If catch.hpp is not present, we want to simply skip compiling the tests.
-# Download catch.hpp and put it in this directory:
-# https://raw.githubusercontent.com/catchorg/Catch2/v2.x/single_include/catch2/catch.hpp
 set (CMAKE_REQUIRED_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}")
 CHECK_INCLUDE_FILE_CXX (catch.hpp HAVE_CATCH_FRAMEWORK)
 if (NOT HAVE_CATCH_FRAMEWORK)
