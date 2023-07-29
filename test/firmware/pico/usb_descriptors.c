@@ -12,6 +12,12 @@
 #define ADC_PACKET_SIZE 5
 #define CMD_PACKET_SIZE 32
 
+bool cmd_out_packet_received;
+size_t cmd_out_packet_length;
+uint8_t CFG_TUSB_MEM_ALIGN cmd_out_buf[CMD_PACKET_SIZE];
+
+uint8_t CFG_TUSB_MEM_ALIGN cmd_in_buf[CMD_PACKET_SIZE];
+
 typedef struct usb_desc_string_t
 {
   uint8_t length;
@@ -230,7 +236,7 @@ static void vendor3_init() {
 static void vendor3_reset(uint8_t __unused rhport) {
 }
 
-static uint16_t vendor3_open(uint8_t __unused rhport,
+static uint16_t vendor3_open(uint8_t rhport,
   const tusb_desc_interface_t * interface_descriptor, uint16_t __unused max_len)
 {
   TU_VERIFY(interface_descriptor->bInterfaceClass == TUSB_CLASS_VENDOR_SPECIFIC);
@@ -246,6 +252,11 @@ static uint16_t vendor3_open(uint8_t __unused rhport,
     }
   }
 
+  if (interface_descriptor->bNumEndpoints != 0)
+  {
+    usbd_edpt_xfer(rhport, EP_ADDR_CMD_OUT, cmd_out_buf, sizeof(cmd_out_buf));
+  }
+
   return descriptor - (const void *)interface_descriptor;
 }
 
@@ -255,8 +266,16 @@ static bool vendor3_control_xfer_cb(uint8_t __unused rhport, uint8_t __unused st
   return false;
 }
 
-static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t __unused ep_addr,
-  xfer_result_t __unused result, uint32_t __unused xferred_bytes) {
+static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t ep_addr,
+  xfer_result_t result, uint32_t transferred_bytes) {
+  if (result == XFER_RESULT_SUCCESS && ep_addr = EP_ADDR_CDC_OUT)
+  {
+    cmd_out_packet_received = true;
+    cmd_out_packet_length = transferred_bytes;
+#if CFG_TUSB_DEBUG >= 2
+    printf("Received command packet %lu\n", cmd_out_packet_length);
+#endif
+  }
   return true;
 }
 
