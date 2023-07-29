@@ -24,6 +24,8 @@
 #define ADC_PACKET_SIZE 5
 #define CMD_PACKET_SIZE 32
 
+bool led_on;
+
 // Buffers used to send and receive data on the command endpoint
 bool cmd_out_packet_received;
 size_t cmd_out_packet_length;
@@ -236,6 +238,8 @@ const uint8_t * tud_descriptor_bos_cb()
 
 static void cmd_out_endpoint_transfer_start()
 {
+  cmd_out_packet_received = false;
+  cmd_out_packet_length = 0;
   memset(cmd_out_buf, 0, sizeof(cmd_out_buf));
   usbd_edpt_xfer(0, EP_ADDR_CMD_OUT, cmd_out_buf, sizeof(cmd_out_buf));
 }
@@ -278,7 +282,7 @@ static bool vendor3_control_xfer_cb(uint8_t __unused rhport, uint8_t __unused st
 
 static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t ep_addr,
   xfer_result_t result, uint32_t transferred_bytes) {
-  if (result == XFER_RESULT_SUCCESS && ep_addr == EP_ADDR_CDC_OUT)
+  if (result == XFER_RESULT_SUCCESS && ep_addr == EP_ADDR_CMD_OUT)
   {
     cmd_out_packet_received = true;
     cmd_out_packet_length = transferred_bytes;
@@ -320,6 +324,39 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     return tud_control_xfer(rhport, request, (void *)desc_ms_os_20, sizeof(desc_ms_os_20));
   }
 
+  if (request->bmRequestType == 0x40 && request->bRequest == 0x90)
+  {
+    // Command 0x90: Set LED
+    led_on = request->wValue & 1;
+    return tud_control_xfer(rhport, request, NULL, 0);
+  }
+
+  if (request->bmRequestType == 0xC0 && request->bRequest == 0x91)
+  {
+    // Command 0x91: Read Buffer
+    // The length of the device's response will be equal to wIndex so this
+    // request can be used to simulate what happens when a device returns less
+    // data than expected.
+
+    // TODO: can we remove some of these checks?
+    if (request->wLength > sizeof(data_buf)) { return false; }
+    if (request->wIndex > request->wLength) { return false; }
+
+    sleep_ms(request->wValue);
+
+    return tud_control_xfer(rhport, request, data_buf, request->wIndex);
+  }
+
+  if (request->bmRequestType == 0x40 && request->bRequest == 0x92)
+  {
+    // Command 0x92: Write buffer
+    if (request->wLength > sizeof(data_buf)) { return false; } // TODO: remove?
+
+    sleep_ms(request->wValue);
+
+    return tud_control_xfer(rhport, request, data_buf, sizeof(data_buf));
+  }
+
   return false;
 }
 
@@ -335,11 +372,17 @@ static void cmd_task()
 
   switch(cmd_out_buf[0])
   {
-  case 0x92:  // Set a byte in dataBuffer
+  case 0x92:  // Command 0x92: Set a byte in dataBuffer
     data_buf[0] = cmd_out_buf[1];
+#if CFG_TUSB_DEBUG > 0
+    printf("setting data_buf[0] to 0x%x\n", data_buf[0]);
+#endif
     break;
-  case 0xDE:  // Delay
+  case 0xDE:  // Command 0xDE: Delay
     uint16_t delay = cmd_out_buf[1] | cmd_out_buf[2] << 8;
+#if CFG_TUSB_DEBUG > 0
+    printf("delaying for %u ms\n", delay);
+#endif
     sleep_ms(delay);
     break;
   }
@@ -359,7 +402,7 @@ static void cdc_task()
 
 //// Main code /////////////////////////////////////////////////////////////////
 
-static void led(bool b)  // TODO: use this to indicate USB activity
+static void set_led(bool b)  // TODO: use this to indicate USB activity
 {
   gpio_init(25);
   gpio_put(25, b);
@@ -398,15 +441,7 @@ int main()
     stdio_uart_buf_task();
     cdc_task();
     cmd_task();
-
-    static uint32_t last_report_time = 0;
-    if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
-    {
-      led(1);
-      printf("%u\n", stdio_uart_buf_tx_send_count());
-      led(0);
-      last_report_time = time_us_32();
-    }
+    set_led(led_on);
 
     // If the BOOTSEL button is pressed, launch the USB bootloader.
     // This makes it easier to reprogram the board.
@@ -414,5 +449,12 @@ int main()
     {
       reset_usb_boot(0, 0);
     }
+
+    // static uint32_t last_report_time = 0;
+    // if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
+    // {
+    //   printf("%u\n", stdio_uart_buf_tx_send_count());
+    //   last_report_time = time_us_32();
+    // }
   }
 }

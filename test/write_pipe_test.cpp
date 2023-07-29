@@ -107,7 +107,7 @@ TEST_CASE("write_pipe (synchronous) on a bulk endpoint ", "[wpi]")
 
     SECTION("can write one full packet with null transferred pointer")
     {
-        uint8_t buffer[64] = { 0x92, 0x55 };
+        uint8_t buffer[32] = { 0x92, 0x55 };
         handle.write_pipe(pipe, buffer, sizeof(buffer), NULL);
 
         // Read the data back.
@@ -135,7 +135,7 @@ TEST_CASE("write_pipe (synchronous) on a bulk endpoint ", "[wpi]")
     {
       // First packet causes a long delay, so this transfer will time out after
       // a partial data transfer.
-      uint8_t buffer[64 * 3] = { 0xDE, 150, 0 };
+      uint8_t buffer[32 * 3] = { 0xDE, 150, 0 };
       try
       {
         handle.write_pipe(pipe, buffer, sizeof(buffer), &transferred);
@@ -147,7 +147,7 @@ TEST_CASE("write_pipe (synchronous) on a bulk endpoint ", "[wpi]")
         #if defined(__linux__) || defined(__APPLE__)
         REQUIRE(transferred == 0);  // bad
         #else
-        REQUIRE(transferred == 64);
+        REQUIRE(transferred == 32);
         #endif
       }
     }
