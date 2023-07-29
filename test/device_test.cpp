@@ -210,7 +210,7 @@ TEST_CASE("Test Device A", "[tda]")
     {
         // If this test fails, you should probably update
         // your Test Device A with the latest firmware.
-        REQUIRE(device.get_revision() == 0x0007);
+        REQUIRE(device.get_revision() == 0x0008);
     }
 
     SECTION("device instance id")
@@ -225,8 +225,15 @@ TEST_CASE("Test Device A", "[tda]")
     SECTION("serial number")
     {
         std::string serial_number = device.get_serial_number();
-        CHECK(serial_number.size() == 11);
-        CHECK(serial_number[2] == '-');
+        CHECK(serial_number.size() == 16);
+        for (char c : serial_number)
+        {
+            if (!(c >= '0' && c <= '9' || c >= 'A' && c <= 'F'))
+            {
+                std::cout << "Bad serial: " << serial_number << std::endl;
+                CHECK(0);
+            }
+        }
     }
 }
 #endif
@@ -245,7 +252,7 @@ TEST_CASE("Test Device B", "[tdb]")
     {
         // If this test fails, you should probably update
         // your Test Device B with the latest firmware.
-        REQUIRE(device.get_revision() == 0x0007);
+        REQUIRE(device.get_revision() == 0x0008);
     }
 }
 #endif
