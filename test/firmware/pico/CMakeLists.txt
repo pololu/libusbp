@@ -8,7 +8,7 @@ project(project C CXX ASM)
 add_compile_options(-Wall -Wextra)
 pico_sdk_init()
 
-add_executable(usb_test_device_a main.c usb_descriptors.c stdio_uart_buf.c)
+add_executable(usb_test_device_a main.c stdio_uart_buf.c)
 
 target_compile_definitions(usb_test_device_a PRIVATE STDIO_UART_BUF_SIZE_TX=65536)
 
