@@ -1,12 +1,11 @@
-/* Tests that libusbp is capable of reliably reading data from an IN endpoint on
- * every frame using asynchronous transfers.  It prints to the standard output
- * as it successfully receives data, and prints to the standard error if there
- * was a gap in the data (a USB frame where the device did not generate a new
- * packet for the host).
- *
- * You can also check the CPU usage while running this function to make
- * sure libusbp is not doing anything too inefficient.
- */
+// Tests that libusbp is capable of reliably reading data from an interrupt
+// IN endpoint every frame using asynchronous transfers.
+//
+// This test is designed to be used with USB Test Device A.
+//
+// It prints to the standard output as it successfully receives data, and prints
+// to the standard error if there was a gap in the data (a USB frame where the
+// device did not generate a new packet for the host).
 
 #include <libusbp.hpp>
 #include <stdio.h>
@@ -21,7 +20,7 @@ const uint16_t vendor_id = 0x1FFB;
 const uint16_t product_id = 0xDA01;
 const uint8_t interface_number = 0;
 const bool composite = true;
-const uint8_t endpoint_address = 0x82;
+const uint8_t endpoint_address = 0x83;
 const size_t packet_size = 5;
 const size_t transfer_size = packet_size;
 const size_t transfer_count = 250;
@@ -58,24 +57,24 @@ int main_with_exceptions()
                 throw transfer_error;
             }
 
-	    if (transferred != transfer_size)
-	    {
-	        fprintf(stderr, "Got %d bytes instead of %d.\n",
-			(int)transferred, (int)transfer_size);
-	    }
+            if (transferred != transfer_size)
+            {
+                fprintf(stderr, "Got %d bytes instead of %d.\n",
+                    (int)transferred, (int)transfer_size);
+            }
 
-	    uint8_t f = buffer[0];
-	    if (f != (uint8_t)(last_f + transfer_size/packet_size))
-	    {
-               // If this happens, it indicates there was a USB frame where the
-               // device did not generate a new packet for the host, which is
-               // bad.  However, you should expect to see a few of these at the
-               // very beginning of the test because there will be some old
-               // packets queued up in the device from earlier, and because
-               // last_f always starts at 0.
-               fprintf(stderr, "Frame number gap: %d to %d\n", last_f, f);
-	    }
-	    last_f = f;
+            uint8_t f = buffer[0];
+            if (f != (uint8_t)(last_f + transfer_size/packet_size))
+            {
+                // If this happens, it indicates there was a USB frame where the
+                // device did not generate a new packet for the host, which is
+                // bad.  However, you should expect to see a few of these at the
+                // very beginning of the test because there will be some old
+                // packets queued up in the device from earlier, and because
+                // last_f always starts at 0.
+                fprintf(stderr, "Frame number gap: %d to %d\n", last_f, f);
+            }
+            last_f = f;
 
             if ((++finish_count % 4096) == 0)
             {

@@ -7,6 +7,7 @@
 #include <pico/stdlib.h>
 #include <pico/unique_id.h>
 #include <hardware/structs/ioqspi.h>
+#include <hardware/structs/usb.h>
 #include <hardware/sync.h>
 
 #include <tusb.h>
@@ -23,6 +24,11 @@
 
 #define ADC_PACKET_SIZE 5
 #define CMD_PACKET_SIZE 32
+
+#define ADC_PACKET0_OFFSET 0xF80
+
+#define ADC_PACKET0 ((volatile uint8_t *)(USBCTRL_DPRAM_BASE + ADC_PACKET0_OFFSET))
+#define ADC_PACKET1 (ADC_PACKET0 + 64)
 
 bool led_on;
 
@@ -269,6 +275,26 @@ static uint16_t vendor3_open(uint8_t rhport,
   if (interface_descriptor->bNumEndpoints != 0)
   {
     cmd_out_endpoint_transfer_start();
+
+    // Set up the ADC endpoint.
+    usb_dpram->ep_ctrl[(EP_ADDR_ADC & 0xF) - 1].in =
+      EP_CTRL_ENABLE_BITS | EP_CTRL_DOUBLE_BUFFERED_BITS |
+      (TUSB_XFER_INTERRUPT << 26) |
+      ADC_PACKET0_OFFSET;
+
+    // tmphax: send some dummy ADC data right now
+    ADC_PACKET0[0] = 0xBB;
+    ADC_PACKET1[0] = 0xBC;
+
+    // TODO: We're supposed to treat this is two 16-bit buffers according to
+    // a vague note in the datasheet (Concurrent access section).
+    uint32_t ctrl =
+      (USB_BUF_CTRL_FULL | USB_BUF_CTRL_DATA1_PID | ADC_PACKET_SIZE) << 16 |
+      (USB_BUF_CTRL_FULL | USB_BUF_CTRL_DATA0_PID | ADC_PACKET_SIZE);
+    usb_dpram->ep_buf_ctrl[(EP_ADDR_ADC & 0xF)].in = ctrl;
+    asm volatile("nop\n" "nop\n" "nop\n");
+    ctrl |= USB_BUF_CTRL_AVAIL << 16 | USB_BUF_CTRL_AVAIL;
+    usb_dpram->ep_buf_ctrl[(EP_ADDR_ADC & 0xF)].in = ctrl;
   }
 
   return descriptor - (const void *)interface_descriptor;
@@ -451,9 +477,10 @@ int main()
     }
 
     // static uint32_t last_report_time = 0;
-    // if ((uint32_t)(time_us_32() - last_report_time) > 8000000)
+    // if ((uint32_t)(time_us_32() - last_report_time) > 1000000)
     // {
-    //   printf("%u\n", stdio_uart_buf_tx_send_count());
+    //   printf("C %u\n", stdio_uart_buf_tx_send_count());
+    //   printf("F %lu\n", usb_hw->sof_rd);
     //   last_report_time = time_us_32();
     // }
   }
