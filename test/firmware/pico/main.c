@@ -1,3 +1,9 @@
+// Firmware for USB Test Device A on a Raspberry Pi Pico (RP2040).
+//
+// Pinout:
+// GP0  - TX: 3 Mbps UART signal for debugging
+// GP25 - On-board LED
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
