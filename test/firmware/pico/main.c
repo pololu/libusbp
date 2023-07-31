@@ -32,11 +32,14 @@
 
 bool led_on;
 
-// Buffers used to send and receive data on the command endpoint
+// Variables for the command endpoint
 bool cmd_out_packet_received;
 size_t cmd_out_packet_length;
 uint8_t CFG_TUSB_MEM_ALIGN cmd_out_buf[CMD_PACKET_SIZE];
 uint8_t CFG_TUSB_MEM_ALIGN cmd_in_buf[CMD_PACKET_SIZE];
+
+// The number of the next ADC data buffer we will prepare for the SIE.
+bool adc_data_toggle;
 
 // Generic buffer used for testing things
 uint8_t data_buf[64 * 3 + 4];
@@ -281,20 +284,6 @@ static uint16_t vendor3_open(uint8_t rhport,
       EP_CTRL_ENABLE_BITS | EP_CTRL_DOUBLE_BUFFERED_BITS |
       (TUSB_XFER_INTERRUPT << 26) |
       ADC_PACKET0_OFFSET;
-
-    // tmphax: send some dummy ADC data right now
-    ADC_PACKET0[0] = 0xBB;
-    ADC_PACKET1[0] = 0xBC;
-
-    // TODO: We're supposed to treat this is two 16-bit buffers according to
-    // a vague note in the datasheet (Concurrent access section).
-    uint32_t ctrl =
-      (USB_BUF_CTRL_FULL | USB_BUF_CTRL_DATA1_PID | ADC_PACKET_SIZE) << 16 |
-      (USB_BUF_CTRL_FULL | USB_BUF_CTRL_DATA0_PID | ADC_PACKET_SIZE);
-    usb_dpram->ep_buf_ctrl[(EP_ADDR_ADC & 0xF)].in = ctrl;
-    asm volatile("nop\n" "nop\n" "nop\n");
-    ctrl |= USB_BUF_CTRL_AVAIL << 16 | USB_BUF_CTRL_AVAIL;
-    usb_dpram->ep_buf_ctrl[(EP_ADDR_ADC & 0xF)].in = ctrl;
   }
 
   return descriptor - (const void *)interface_descriptor;
@@ -425,6 +414,32 @@ static void cdc_task()
   tud_cdc_write_flush();
 }
 
+// Send ADC data to the USB host using our interrupt endpoint.
+// Packet format:
+// - byte 0: USB frame number
+// - bytes 1 and 2: ADC reading (TODO)
+// - bytes 3 and 4: ADC reading (TODO)
+static void adc_task()
+{
+  volatile uint16_t * ctrl = (void *)USBCTRL_DPRAM_BASE +
+    0x80 + 8 * (EP_ADDR_ADC & 0xF) + 2 * adc_data_toggle;
+
+  uint16_t c = *ctrl;
+  if (c & USB_BUF_CTRL_AVAIL) { return; }
+
+  volatile uint8_t * packet = ADC_PACKET0 + 64 * adc_data_toggle;
+
+  packet[0] = usb_hw->sof_rd;
+  // TODO: fill the other 4 bytes of the packet with ADC data
+
+  c = USB_BUF_CTRL_FULL | adc_data_toggle << 13 | ADC_PACKET_SIZE;
+  *ctrl = c;
+  asm volatile("nop\n" "nop\n" "nop\n");
+  *ctrl = c | USB_BUF_CTRL_AVAIL;
+
+  adc_data_toggle ^= 1;
+}
+
 
 //// Main code /////////////////////////////////////////////////////////////////
 
@@ -467,6 +482,7 @@ int main()
     stdio_uart_buf_task();
     cdc_task();
     cmd_task();
+    adc_task();
     set_led(led_on);
 
     // If the BOOTSEL button is pressed, launch the USB bootloader.
