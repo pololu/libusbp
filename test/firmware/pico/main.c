@@ -13,6 +13,7 @@
 #include <pico/stdlib.h>
 #include <pico/unique_id.h>
 #include <hardware/structs/ioqspi.h>
+#include <hardware/structs/scb.h>
 #include <hardware/structs/usb.h>
 #include <hardware/sync.h>
 
@@ -39,7 +40,6 @@
 bool led_on;
 
 // Variables for the command endpoint
-bool cmd_out_packet_received;
 size_t cmd_out_packet_length;
 uint8_t CFG_TUSB_MEM_ALIGN cmd_out_buf[CMD_PACKET_SIZE];
 uint8_t CFG_TUSB_MEM_ALIGN cmd_in_buf[CMD_PACKET_SIZE];
@@ -49,6 +49,8 @@ bool adc_data_toggle;
 
 // Generic buffer used for testing things
 uint8_t data_buf[64 * 3 + 4];
+
+static void handle_cmd_out_packet(void);
 
 
 //// USB descriptors ///////////////////////////////////////////////////////////
@@ -253,7 +255,6 @@ const uint8_t * tud_descriptor_bos_cb()
 
 static void cmd_out_endpoint_transfer_start()
 {
-  cmd_out_packet_received = false;
   cmd_out_packet_length = 0;
   memset(cmd_out_buf, 0, sizeof(cmd_out_buf));
   usbd_edpt_xfer(0, EP_ADDR_CMD_OUT, cmd_out_buf, sizeof(cmd_out_buf));
@@ -305,11 +306,12 @@ static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t ep_addr,
   xfer_result_t result, uint32_t transferred_bytes) {
   if (result == XFER_RESULT_SUCCESS && ep_addr == EP_ADDR_CMD_OUT)
   {
-    cmd_out_packet_received = true;
     cmd_out_packet_length = transferred_bytes;
 #if CFG_TUSB_DEBUG >= 2
     printf("Received command packet %u\n", cmd_out_packet_length);
 #endif
+    handle_cmd_out_packet();
+    cmd_out_endpoint_transfer_start();
   }
   return true;
 }
@@ -381,14 +383,13 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
   return false;
 }
 
-static void cmd_task()
+static void handle_cmd_out_packet()
 {
-  if (!cmd_out_packet_received) { return; }
-
   if (cmd_out_packet_length == 0)
   {
     // Empty packet
     data_buf[0] = 0x66;
+    return;
   }
 
   switch(cmd_out_buf[0])
@@ -407,8 +408,6 @@ static void cmd_task()
     sleep_ms(delay);
     break;
   }
-
-  cmd_out_endpoint_transfer_start();
 }
 
 static void cdc_task()
@@ -487,7 +486,6 @@ int main()
     tud_task();
     stdio_uart_buf_task();
     cdc_task();
-    cmd_task();
     adc_task();
     set_led(led_on);
 
