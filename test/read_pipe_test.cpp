@@ -6,7 +6,7 @@ TEST_CASE("read_pipe parameter checking")
     libusbp::device device = find_test_device_a();
     libusbp::generic_interface gi(device, 0, true);
     libusbp::generic_handle handle(gi);
-    const uint8_t pipe = 0x82;
+    const uint8_t pipe = 0x83;
     size_t transferred = 0xFFFF;
 
     SECTION("sets transferred to zero if possible")
@@ -105,7 +105,7 @@ TEST_CASE("read_pipe (synchronous) on an interrupt endpoint ", "[rpi]")
     libusbp::device device = find_test_device_a();
     libusbp::generic_interface gi(device, 0, true);
     libusbp::generic_handle handle(gi);
-    const uint8_t pipe = 0x82;
+    const uint8_t pipe = 0x83;
     size_t transferred = 0xFFFF;
     const size_t packet_size = 5;
 

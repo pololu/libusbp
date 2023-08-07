@@ -35,7 +35,7 @@ public:
     {
         if (get_milliseconds() > timeout_ms)
         {
-            throw "Timeout";
+            throw "Timeout while running test";
         }
     }
 
@@ -51,22 +51,22 @@ private:
 };
 
 #ifdef _WIN32
-void inline sleep_quick()
+inline void sleep_quick()
 {
     Sleep(1);
 }
 
-void inline sleep_ms(uint32_t ms)
+inline void sleep_ms(uint32_t ms)
 {
     Sleep(ms);
 }
 #else
-void inline sleep_quick()
+inline void sleep_quick()
 {
     usleep(100);
 }
 
-void inline sleep_ms(uint32_t ms)
+inline void sleep_ms(uint32_t ms)
 {
     usleep((useconds_t)1000 * ms);
 }

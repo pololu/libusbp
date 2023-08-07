@@ -47,6 +47,10 @@ uint8_t CFG_TUSB_MEM_ALIGN cmd_in_buf[CMD_PACKET_SIZE];
 // The number of the next ADC data buffer we will prepare for the SIE.
 bool adc_data_toggle;
 
+bool adc_paused;
+uint32_t adc_pause_start_time;
+uint32_t adc_pause_duration;
+
 // Generic buffer used for testing things
 uint8_t data_buf[64 * 3 + 4];
 
@@ -318,7 +322,9 @@ static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t ep_addr,
 
 static const usbd_class_driver_t vendor3_driver =
 {
+#if CFG_TUSB_DEBUG > 1
   .name             = "Vendor3",
+#endif
   .init             = vendor3_init,
   .reset            = vendor3_reset,
   .open             = vendor3_open,
@@ -380,6 +386,16 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     return tud_control_xfer(rhport, request, data_buf, sizeof(data_buf));
   }
 
+  if (request->bmRequestType == 0x40 && request->bRequest == 0xA0 &&
+    request->wLength == 0)
+  {
+    // Command 0xA0: Pause or unpause the ADC data stream
+    adc_paused = request->wValue ? 1 : 0;
+    adc_pause_start_time = time_us_32();
+    adc_pause_duration = request->wValue * 1000;
+    return tud_control_xfer(rhport, request, NULL, 0);
+  }
+
   return false;
 }
 
@@ -426,6 +442,15 @@ static void cdc_task()
 // - bytes 3 and 4: ADC reading (TODO)
 static void adc_task()
 {
+  if (adc_paused)
+  {
+    if ((uint32_t)(time_us_32() - adc_pause_start_time) < adc_pause_duration)
+    {
+      return;
+    }
+    adc_paused = 0;
+  }
+
   volatile uint16_t * ctrl = (void *)USBCTRL_DPRAM_BASE +
     0x80 + 8 * (EP_ADDR_ADC & 0xF) + 2 * adc_data_toggle;
 
@@ -435,7 +460,11 @@ static void adc_task()
   volatile uint8_t * packet = ADC_PACKET0 + 64 * adc_data_toggle;
 
   packet[0] = usb_hw->sof_rd;
-  // TODO: fill the other 4 bytes of the packet with ADC data
+  packet[1] = usb_hw->sof_rd >> 8;
+
+  // TODO: fill the next 2 bytes of the packet with ADC data
+
+  packet[4] = 0xAB;
 
   c = USB_BUF_CTRL_FULL | adc_data_toggle << 13 | ADC_PACKET_SIZE;
   *ctrl = c;

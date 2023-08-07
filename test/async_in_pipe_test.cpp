@@ -4,7 +4,7 @@
 // various operations.  If the tests fail intermittently, some parameters may
 // need to be adjusted.
 
-const uint8_t pipe_id = 0x82;
+const uint8_t pipe_id = 0x83;
 
 #ifdef USE_TEST_DEVICE_A
 static void check_error_for_cancelled_transfer(const libusbp::error & error)
@@ -231,7 +231,7 @@ TEST_CASE("async_in_pipe parameter validation and state checks")
     libusbp::device device = find_test_device_a();
     libusbp::generic_interface gi(device, 0, true);
     libusbp::generic_handle handle(gi);
-    libusbp::async_in_pipe pipe = handle.open_async_in_pipe(0x82);
+    libusbp::async_in_pipe pipe = handle.open_async_in_pipe(pipe_id);
 
     SECTION("allocate_transfers")
     {
@@ -347,10 +347,13 @@ TEST_CASE("async_in_pipe for an interrupt endpoint")
     libusbp::device device = find_test_device_a();
     libusbp::generic_interface gi(device, 0, true);
     libusbp::generic_handle handle(gi);
-    libusbp::async_in_pipe pipe = handle.open_async_in_pipe(0x82);
+    libusbp::async_in_pipe pipe = handle.open_async_in_pipe(pipe_id);
     const size_t transfer_size = 5;
 
     test_timeout timeout(500);
+
+    // Unpause the ADC if it was paused by some previous test.
+    handle.control_transfer(0x40, 0xA0, 0, 0);
 
     SECTION("can do continuous transfers and then cancel them")
     {
@@ -358,7 +361,7 @@ TEST_CASE("async_in_pipe for an interrupt endpoint")
         pipe.start_endless_transfers();
 
         size_t finish_count = 0;
-        while(finish_count < 12)
+        while (finish_count < 12)
         {
             // Don't use REQUIRE or CATCH here because then the number of
             // assertions printed at the end of the tests will be unpredictable.
@@ -373,6 +376,8 @@ TEST_CASE("async_in_pipe for an interrupt endpoint")
 
                 REQUIRE(buffer[4] == 0xAB);
                 finish_count++;
+                printf("finish_count: %ld\n", finish_count);
+                fflush(stdout);
             }
 
             pipe.handle_events();
@@ -433,7 +438,7 @@ TEST_CASE("async_in_pipe for an interrupt endpoint")
         {
             pipe.handle_events();
             libusbp::error transfer_error;
-            while(pipe.handle_finished_transfer(NULL, NULL, &transfer_error))
+            while (pipe.handle_finished_transfer(NULL, NULL, &transfer_error))
             {
                 check_error_for_cancelled_transfer(transfer_error);
 
