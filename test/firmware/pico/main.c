@@ -311,7 +311,7 @@ static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t ep_addr,
   if (result == XFER_RESULT_SUCCESS && ep_addr == EP_ADDR_CMD_OUT)
   {
     cmd_out_packet_length = transferred_bytes;
-#if CFG_TUSB_DEBUG >= 2
+#if CFG_TUSB_DEBUG >= 3
     printf("Received command packet %u\n", cmd_out_packet_length);
 #endif
     handle_cmd_out_packet();
@@ -322,7 +322,7 @@ static bool vendor3_xfer_cb(uint8_t __unused rhport, uint8_t ep_addr,
 
 static const usbd_class_driver_t vendor3_driver =
 {
-#if CFG_TUSB_DEBUG > 1
+#if CFG_TUSB_DEBUG >= 2
   .name             = "Vendor3",
 #endif
   .init             = vendor3_init,
@@ -357,12 +357,15 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
   {
     // Command 0x90: Set LED
     led_on = request->wValue & 1;
+#if CFG_TUSB_DEBUG >= 2
+    printf("EP0 set LED %u\n", led_on);
+#endif
     return tud_control_xfer(rhport, request, NULL, 0);
   }
 
   if (request->bmRequestType == 0xC0 && request->bRequest == 0x91)
   {
-    // Command 0x91: Read Buffer
+    // Command 0x91: Read Buffer (and optionally sleep)
     // The length of the device's response will be equal to wIndex so this
     // request can be used to simulate what happens when a device returns less
     // data than expected.
@@ -371,17 +374,39 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     if (request->wLength > sizeof(data_buf)) { return false; }
     if (request->wIndex > request->wLength) { return false; }
 
-    sleep_ms(request->wValue);
+#if CFG_TUSB_DEBUG >= 2
+    printf("EP0 Read Buffer, wLength=%u\n", request->wLength);
+#endif
+    if (request->wValue)
+    {
+#if CFG_TUSB_DEBUG >= 2
+      printf("Sleeping for %u ms\n", request->wValue);
+      stdio_uart_buf_flush();
+#endif
+      sleep_ms(request->wValue);
+      printf("Done sleeping\n");
+      stdio_uart_buf_flush();
+    }
 
     return tud_control_xfer(rhport, request, data_buf, request->wIndex);
   }
 
   if (request->bmRequestType == 0x40 && request->bRequest == 0x92)
   {
-    // Command 0x92: Write buffer
+    // Command 0x92: Write buffer (and optionally sleep)
     if (request->wLength > sizeof(data_buf)) { return false; } // TODO: remove?
 
-    sleep_ms(request->wValue);
+#if CFG_TUSB_DEBUG >= 2
+    printf("EP0 Write Buffer, wLength=%u\n", request->wLength);
+#endif
+    if (request->wValue)
+    {
+#if CFG_TUSB_DEBUG >= 2
+      printf("Sleeping for %u ms\n", request->wValue);
+      stdio_uart_buf_flush();
+#endif
+      sleep_ms(request->wValue);
+    }
 
     return tud_control_xfer(rhport, request, data_buf, sizeof(data_buf));
   }
@@ -393,6 +418,11 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     adc_paused = request->wValue ? 1 : 0;
     adc_pause_start_time = time_us_32();
     adc_pause_duration = request->wValue * 1000;
+
+#if CFG_TUSB_DEBUG >= 2
+    printf("EP0 ADC pause %u\n", request->wValue);
+#endif
+
     return tud_control_xfer(rhport, request, NULL, 0);
   }
 
@@ -412,14 +442,14 @@ static void handle_cmd_out_packet()
   {
   case 0x92:  // Command 0x92: Set a byte in dataBuffer
     data_buf[0] = cmd_out_buf[1];
-#if CFG_TUSB_DEBUG > 0
-    printf("setting data_buf[0] to 0x%x\n", data_buf[0]);
+#if CFG_TUSB_DEBUG >= 2
+    printf("CMD Set byte: 0x%x\n", data_buf[0]);
 #endif
     break;
   case 0xDE:  // Command 0xDE: Delay
     uint16_t delay = cmd_out_buf[1] | cmd_out_buf[2] << 8;
-#if CFG_TUSB_DEBUG > 0
-    printf("delaying for %u ms\n", delay);
+#if CFG_TUSB_DEBUG >= 2
+    printf("CMD Delay: %u\n", delay);
 #endif
     sleep_ms(delay);
     break;
@@ -525,12 +555,11 @@ int main()
       reset_usb_boot(0, 0);
     }
 
-    // static uint32_t last_report_time = 0;
-    // if ((uint32_t)(time_us_32() - last_report_time) > 1000000)
-    // {
-    //   printf("C %u\n", stdio_uart_buf_tx_send_count());
-    //   printf("F %lu\n", usb_hw->sof_rd);
-    //   last_report_time = time_us_32();
-    // }
+    static uint32_t last_report_time = 0;
+    if ((uint32_t)(time_us_32() - last_report_time) > 1000000)
+    {
+      printf("Frame %lu\n", usb_hw->sof_rd);
+      last_report_time = time_us_32();
+    }
   }
 }

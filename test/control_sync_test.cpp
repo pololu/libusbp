@@ -83,8 +83,8 @@ TEST_CASE("control transfers that time out for Test Device A")
     // Mac OS X seems to have really inaccurate timers and it does not detect a
     // timeout unless the device delays for over roughly one second.  To detect it
     // reliably, the delay needs to be even longer, definitely slows down the tests
-    // and makes our device not compliant with the USB specification during that
-    // time, because it cannot response to SETUP packets.
+    // and could make our device not compliant with the USB specification during
+    // that time, since it can't fully handly other control requests.
     const uint32_t required_delay = 2000;
     #else
     const uint32_t required_delay = 100;

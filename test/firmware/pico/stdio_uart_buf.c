@@ -59,7 +59,7 @@ size_t stdio_uart_buf_tx_write_atom(const void * buf, size_t count)
   return write(buf, count, true);
 }
 
-static void stdio_uart_buf_out_chars(const char * buf, int length)
+void stdio_uart_buf_out_chars(const char * buf, int length)
 {
   if (length < 0) { return; }
   size_t wrote;
@@ -131,7 +131,17 @@ void stdio_uart_buf_task(void)
     uart_get_hw(uart_instance)->dr = tx_buf[tx_send_count % sizeof(tx_buf)];
     tx_send_count++;
   }
+
+  // Make sure the ISR can see the new value we wrote to tx_send_count.
   __dmb();
+}
+
+void stdio_uart_buf_flush()
+{
+  while (__dmb(), tx_cut_send_count != tx_cut_queue_count || tx_send_count != tx_queue_count)
+  {
+    stdio_uart_buf_task();
+  }
 }
 
 stdio_driver_t stdio_uart_buf = {
