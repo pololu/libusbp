@@ -36,6 +36,32 @@ int main_with_exceptions()
 
     libusbp::generic_interface gi(device, interface_number, composite);
     libusbp::generic_handle handle(gi);
+
+    size_t transferred = 0xFFFF;
+    char buffer[3] = "hi";
+
+    // tmphax: set a timeout so we can trigger a bug in the RP2040
+    handle.set_timeout(0, 1);
+
+    // Read request that times out
+    try
+    {
+        handle.control_transfer(0xC0, 0x91, 100, 0,
+            buffer, sizeof(buffer), &transferred);
+    }
+    catch(const libusbp::error & error)
+    {
+        std::cout << "2: " << error.what() << std::endl;
+    }
+
+    // Write request with no data stage that times out
+    // (but WinUSB doesn't report an error)
+    handle.control_transfer(0x40, 0x92, 100, 0, NULL, 0, NULL);
+
+    printf("Done.\n");
+
+    return 0;  // end of tmphax
+
     libusbp::async_in_pipe pipe = handle.open_async_in_pipe(endpoint_address);
     pipe.allocate_transfers(transfer_count, transfer_size);
 

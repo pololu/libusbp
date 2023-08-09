@@ -3,7 +3,7 @@
 #ifdef NDEBUG
 #define CFG_TUSB_DEBUG 0
 #else
-#define CFG_TUSB_DEBUG 2
+#define CFG_TUSB_DEBUG 3
 #endif
 
 #define CFG_TUD_ENABLED 1

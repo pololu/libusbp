@@ -384,11 +384,18 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
       stdio_uart_buf_flush();
 #endif
       sleep_ms(request->wValue);
+#if CFG_TUSB_DEBUG >= 2
       printf("Done sleeping\n");
       stdio_uart_buf_flush();
+#endif
     }
 
-    return tud_control_xfer(rhport, request, data_buf, request->wIndex);
+    bool ret = tud_control_xfer(rhport, request, data_buf, request->wIndex);
+#if CFG_TUSB_DEBUG >= 2
+    printf("EP0 read final result: %u\n", ret);
+    stdio_uart_buf_flush();
+#endif
+    return ret;
   }
 
   if (request->bmRequestType == 0x40 && request->bRequest == 0x92)
@@ -406,9 +413,18 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
       stdio_uart_buf_flush();
 #endif
       sleep_ms(request->wValue);
+#if CFG_TUSB_DEBUG >= 2
+      printf("Done sleeping\n");
+      stdio_uart_buf_flush();
+#endif
     }
 
-    return tud_control_xfer(rhport, request, data_buf, sizeof(data_buf));
+    bool ret = tud_control_xfer(rhport, request, data_buf, sizeof(data_buf));
+#if CFG_TUSB_DEBUG >= 2
+    printf("EP0 write final result: %u\n", ret);
+    stdio_uart_buf_flush();
+#endif
+    return ret;
   }
 
   if (request->bmRequestType == 0x40 && request->bRequest == 0xA0 &&
