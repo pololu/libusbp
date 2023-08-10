@@ -41,12 +41,21 @@ int main_with_exceptions()
     char buffer[3] = "hi";
 
     // tmphax: set a timeout so we can trigger a bug in the RP2040
-    handle.set_timeout(0, 1);
+    handle.set_timeout(0, 10);
+
+    // write request with no data stage that works
+    handle.control_transfer(0x40, 0x92, 0, 0, NULL, 0, NULL);
+
+    // write request that works
+    handle.control_transfer(0x40, 0x92, 0, 0, buffer, sizeof(buffer), NULL);
+
+    // read request that works
+    handle.control_transfer(0xC0, 0x91, 0, 3, buffer, sizeof(buffer), NULL);
 
     // Read request that times out
     try
     {
-        handle.control_transfer(0xC0, 0x91, 100, 0,
+        handle.control_transfer(0xC0, 0x91, 100, 3,
             buffer, sizeof(buffer), &transferred);
     }
     catch(const libusbp::error & error)
