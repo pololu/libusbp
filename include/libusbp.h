@@ -109,6 +109,12 @@ enum libusbp_error_code
     /*! The error might have been caused by the transfer getting cancelled from
      * the host side.  Some data might have been transferred anyway. */
     LIBUSBP_ERROR_CANCELLED = 8,
+
+    /*! The device does not have a manufacturer. */
+    LIBUSBP_ERROR_NO_MANUFACTURER = 9,
+
+    /*! The device does not have a name. */
+    LIBUSBP_ERROR_NO_NAME = 10,
 };
 
 /*! Attempts to copy an error.  If you copy a NULL ::libusbp_error
@@ -381,6 +387,22 @@ LIBUSBP_API LIBUSBP_WARN_UNUSED
 libusbp_error * libusbp_device_get_os_id(
     const libusbp_device *,
     char ** id);
+
+/*! Gets the name of the device manufacturer as an ASCII-encoded string.
+ *
+ * You should free the returned string by calling libusbp_string_free(). */
+LIBUSBP_API LIBUSBP_WARN_UNUSED
+libusbp_error * libusbp_device_get_manufacturer(
+    const libusbp_device * device,
+    char ** manufacturer);
+
+/*! Gets the name of the device as an ASCII-encoded string.
+ *
+ * You should free the returned string by calling libusbp_string_free(). */
+LIBUSBP_API LIBUSBP_WARN_UNUSED
+libusbp_error * libusbp_device_get_name(
+    const libusbp_device * device,
+    char ** name);
 
 
 /** libusbp_generic_interface **************************************************/
