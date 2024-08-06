@@ -53,17 +53,21 @@ elseif (APPLE)
     mac/iokit_mac.c)
 endif ()
 
-add_library (usbp ${sources})
+if (BUILD_LIBUSBP_SHARED_LIBS)
+add_library (usbp SHARED ${sources})
+else ()
+add_library (usbp STATIC ${sources})
+endif ()
 
-include_directories (
-  "${CMAKE_SOURCE_DIR}/include"
+target_include_directories (usbp PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include"
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 if (WIN32)
   target_link_libraries (usbp setupapi winusb uuid ole32)
-  if (NOT BUILD_SHARED_LIBS)
+  if (NOT BUILD_LIBUSBP_SHARED_LIBS)
     set (PC_MORE_LIBS "-lsetupapi -lwinusb -luuid -lole32")
   endif ()
 elseif (LINUX)
@@ -71,12 +75,12 @@ elseif (LINUX)
   string (REPLACE ";" " " LIBUDEV_CFLAGS "${LIBUDEV_CFLAGS}")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBUDEV_CFLAGS}")
   target_link_libraries (usbp udev)
-  if (NOT BUILD_SHARED_LIBS)
+  if (NOT BUILD_LIBUSBP_SHARED_LIBS)
     set (PC_REQUIRES "libudev")
   endif ()
 elseif (APPLE)
   set (link_flags "-framework IOKit -framework CoreFoundation ${link_flags}")
-  if (NOT BUILD_SHARED_LIBS)
+  if (NOT BUILD_LIBUSBP_SHARED_LIBS)
     set (PC_MORE_LIBS "${link_flags}")
   endif ()
 endif ()
