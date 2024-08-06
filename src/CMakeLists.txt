@@ -55,8 +55,8 @@ endif ()
 
 add_library (usbp ${sources})
 
-include_directories (
-  "${CMAKE_SOURCE_DIR}/include"
+target_include_directories (usbp PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include"
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_BINARY_DIR}"
 )
