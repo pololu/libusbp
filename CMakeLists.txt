@@ -49,6 +49,7 @@ set(VBOX_LINUX_ON_WINDOWS FALSE CACHE BOOL
 set(ENABLE_GCOV FALSE CACHE BOOL
   "Compile with special options needed for gcov.")
 
+set (CMAKE_C_EXTENSIONS ON)
 set (CMAKE_C_STANDARD 99)
 set (CMAKE_CXX_STANDARD 11)
 
