@@ -33,6 +33,7 @@
 #include <devpropdef.h>
 #include <setupapi.h>
 #include <cfgmgr32.h>
+#include <initguid.h>
 #include <usbiodef.h>
 #include <usbioctl.h>
 #include <stringapiset.h>
