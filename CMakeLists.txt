@@ -10,7 +10,7 @@ if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif ()
 
-# Don't use -rdynamic since it breaks causes musl static linking.
+# Don't use -rdynamic since it breaks musl static linking.
 if (POLICY CMP0065)
   cmake_policy(SET CMP0065 NEW)
 endif ()
